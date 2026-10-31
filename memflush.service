@@ -1,0 +1,7 @@
+[Unit]
+Description=Drop Linux page cache and reclaim RAM
+Documentation=https://github.com/
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"
