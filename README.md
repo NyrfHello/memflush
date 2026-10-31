@@ -21,7 +21,7 @@
 Clone this repository and run the installer:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/memflush.git
+git clone https://github.com/NyrfHello/memflush
 cd memflush
 chmod +x install.sh
 sudo ./install.sh
