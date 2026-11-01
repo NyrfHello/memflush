@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Installer for memflush
-# Installs binary to /usr/local/bin, registers systemd unit, and polkit rules.
+# Installs binary to /usr/local/bin, registers systemd unit, polkit rules,
+# man page, and shell completions.
 # ==============================================================================
 
 set -euo pipefail
@@ -23,7 +24,9 @@ echo "  [✓] Installed /usr/local/bin/memflush"
 
 # 2. Install systemd service unit
 install -Dm644 "${SCRIPT_DIR}/memflush.service" /etc/systemd/system/memflush.service
-systemctl daemon-reload
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload
+fi
 echo "  [✓] Installed /etc/systemd/system/memflush.service"
 
 # 3. Configure passwordless execution for wheel/sudo groups
@@ -51,6 +54,20 @@ if [ -d "$SUDOERS_DIR" ]; then
     echo "ALL ALL=(ALL) NOPASSWD: /usr/bin/systemctl start memflush.service" > "${SUDOERS_DIR}/memflush"
     chmod 440 "${SUDOERS_DIR}/memflush"
     echo "  [✓] Configured sudoers fallback"
+fi
+
+# 4. Install man page if present
+if [ -f "${SCRIPT_DIR}/doc/memflush.1" ]; then
+    install -Dm644 "${SCRIPT_DIR}/doc/memflush.1" /usr/local/share/man/man1/memflush.1
+    echo "  [✓] Installed /usr/local/share/man/man1/memflush.1"
+fi
+
+# 5. Install shell completions if present
+if [ -d "${SCRIPT_DIR}/completions" ]; then
+    [ -f "${SCRIPT_DIR}/completions/memflush.bash" ] && install -Dm644 "${SCRIPT_DIR}/completions/memflush.bash" /usr/local/share/bash-completion/completions/memflush
+    [ -f "${SCRIPT_DIR}/completions/_memflush" ] && install -Dm644 "${SCRIPT_DIR}/completions/_memflush" /usr/local/share/zsh/site-functions/_memflush
+    [ -f "${SCRIPT_DIR}/completions/memflush.fish" ] && install -Dm644 "${SCRIPT_DIR}/completions/memflush.fish" /usr/local/share/fish/vendor_completions.d/memflush.fish
+    echo "  [✓] Installed shell completions (Bash, Zsh, Fish)"
 fi
 
 echo ""

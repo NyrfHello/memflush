@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a Question or Discuss Ideas
+    url: https://github.com/NyrfHello/memflush/discussions
+    about: Ask questions, share your keybinding configurations, or discuss ideas with the community.
+  - name: Security Vulnerability Reporting
+    url: https://github.com/NyrfHello/memflush/security/advisories/new
+    about: Privately report a security issue or vulnerability.

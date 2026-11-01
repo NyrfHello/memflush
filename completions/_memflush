@@ -1,0 +1,8 @@
+#compdef memflush
+
+_arguments -s \
+  '(-n --no-notify)'{-n,--no-notify}'[Terminal output only, skips desktop notification]' \
+  '(-s --silent -q --quiet)'{-s,--silent}'[Run completely silent without terminal text or notification]' \
+  '(-s --silent -q --quiet)'{-q,--quiet}'[Alias for --silent, ideal for autostart and cron]' \
+  '(-v --version)'{-v,--version}'[Display version information]' \
+  '(-h --help)'{-h,--help}'[Show help message and usage]'

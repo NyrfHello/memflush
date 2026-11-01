@@ -1,0 +1,72 @@
+name: Bug Report
+description: Create a report to help us improve memflush
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        Please verify that you have tested with the latest release.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Provide a clear and concise description of the bug.
+      placeholder: Tell us what went wrong.
+    validations:
+      required: true
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Linux Distribution
+      description: What Linux distribution are you running?
+      options:
+        - CachyOS
+        - Arch Linux
+        - Fedora
+        - Ubuntu / Debian
+        - openSUSE
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: kernel
+    attributes:
+      label: Kernel & Desktop Environment
+      description: Output of `uname -r` and your desktop / window manager (e.g., Hyprland, Sway, KDE, GNOME).
+      placeholder: "Linux 6.13.0-cachyos, Hyprland (Wayland)"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Exact commands or actions taken to trigger the issue.
+      placeholder: |
+        1. Run `memflush` in terminal
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Command Output & Logs
+      description: Paste terminal output, `journalctl -u memflush.service`, or systemd errors here.
+      render: shell
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Verification Checklist
+      options:
+        - label: I have verified that `systemd` and `free -m` are available on this system.
+          required: true
+        - label: I checked existing issues and this is not a duplicate.
+          required: true

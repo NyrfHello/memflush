@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build & Publish Release Assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Release Archive & Checksums
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          VERSION="${TAG_NAME#v}"
+          DIST_DIR="memflush-${VERSION}"
+          
+          mkdir -p "${DIST_DIR}"
+          cp -r memflush memflush.service Makefile install.sh uninstall.sh \
+                completions doc contrib LICENSE README.md CHANGELOG.md \
+                SECURITY.md CONTRIBUTING.md "${DIST_DIR}/"
+          
+          tar -czf "${DIST_DIR}.tar.gz" "${DIST_DIR}"
+          sha256sum "${DIST_DIR}.tar.gz" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            memflush-*.tar.gz
+            SHA256SUMS
+          generate_release_notes: true
+          draft: false
+          prerelease: false

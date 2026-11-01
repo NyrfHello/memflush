@@ -2,7 +2,25 @@
 *.log
 *.tmp
 *~
+*.swp
+*.swo
 
 # OS artifacts
 .DS_Store
 Thumbs.db
+
+# Packaging & build artifacts
+*.tar.gz
+*.tar.xz
+*.tar.zst
+*.pkg.tar.*
+*.rpm
+src/
+pkg/
+dist/
+build/
+release/
+
+# Editor / IDE configuration
+.vscode/
+.idea/

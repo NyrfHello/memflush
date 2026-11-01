@@ -1,0 +1,82 @@
+.TH MEMFLUSH 1 "November 2026" "memflush 1.1.0" "User Commands"
+.SH NAME
+memflush \- Advanced Linux memory compaction and cache flush utility
+.SH SYNOPSIS
+.B memflush
+[\fB\-n\fR|\fB\-\-no\-notify\fR]
+[\fB\-s\fR|\fB\-\-silent\fR|\fB\-q\fR|\fB\-\-quiet\fR]
+[\fB\-v\fR|\fB\-\-version\fR]
+[\fB\-h\fR|\fB\-\-help\fR]
+.SH DESCRIPTION
+\fBmemflush\fR proactively defragments memory zones, compresses dormant cold process pages into \fBZRAM\fR swap, and safely flushes unused file page caches, directory entries (dentries), and inodes.
+.PP
+Unlike traditional cache-dropping scripts that only flush page caches, \fBmemflush\fR interacts directly with modern Linux kernel cgroup v2 interfaces (\fI/sys/fs/cgroup/memory.reclaim\fR) and kernel memory compaction (\fI/proc/sys/vm/compact_memory\fR).
+.PP
+\fBmemflush\fR requires elevated privileges to perform memory reclaim. It integrates seamlessly with \fBsystemd\fR, Polkit, and sudoers rules to allow passwordless execution from user sessions and desktop keybindings.
+.SH OPTIONS
+.TP
+\fB\-n\fR, \fB\-\-no\-notify\fR
+Run in terminal output mode only. Skips desktop notifications via \fBnotify\-send\fR. Useful for SSH sessions, scripts, and headless servers.
+.TP
+\fB\-s\fR, \fB\-\-silent\fR
+Run completely silent. Suppresses all terminal text and desktop notifications. Ideal for desktop keyboard shortcuts and window manager autostart hooks.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Alias for \fB\-\-silent\fR.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+Display version information and exit.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Display usage information and exit.
+.SH EXECUTION LIFECYCLE
+When invoked, \fBmemflush\fR executes in three stages:
+.IP 1. 3
+\fBProactive CGroup Reclaim:\fR Writes to \fI/sys/fs/cgroup/memory.reclaim\fR to push inactive, cold anonymous pages into ZRAM swap.
+.IP 2. 3
+\fBZone Compaction:\fR Triggers proactive memory zone defragmentation via \fI/proc/sys/vm/compact_memory\fR to satisfy high-order kernel allocations.
+.IP 3. 3
+\fBCache Flushing:\fR Syncs dirty pages to disk and clears page caches, dentries, and inodes via \fI/proc/sys/vm/drop_caches\fR.
+.SH FILES
+.TP
+\fI/usr/local/bin/memflush\fR (or \fI/usr/bin/memflush\fR)
+The primary executable binary.
+.TP
+\fI/etc/systemd/system/memflush.service\fR
+Hardened systemd unit file providing elevated execution without interactive authentication.
+.TP
+\fI/etc/polkit\-1/rules.d/99\-memflush.rules\fR
+Polkit authorization rule allowing members of the \fBwheel\fR and \fBsudo\fR groups to start \fBmemflush.service\fR without password prompts.
+.TP
+\fI/etc/sudoers.d/memflush\fR
+Fallback sudoers configuration for passwordless service execution.
+.SH EXAMPLES
+.PP
+Standard interactive execution with terminal statistics and desktop notification:
+.RS
+.B memflush
+.RE
+.PP
+Run in terminal without sending a desktop notification:
+.RS
+.B memflush \-\-no\-notify
+.RE
+.PP
+Silent execution from a desktop keybinding (e.g. Hyprland, Sway, KDE):
+.RS
+.B memflush \-\-silent
+.RE
+.PP
+Automatic boot cleanup (execute 8 seconds after login in autostart):
+.RS
+.B sh \-c 'sleep 8 && memflush \-\-silent'
+.RE
+.SH REPORTING BUGS
+Report bugs and submit pull requests to:
+.br
+.UR https://github.com/NyrfHello/memflush
+.UE
+.SH COPYRIGHT
+Copyright \(co 2026 nyrfhello.
+.br
+Released under the MIT License.
