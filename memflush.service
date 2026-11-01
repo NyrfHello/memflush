@@ -1,7 +1,7 @@
 [Unit]
-Description=Drop Linux page cache and reclaim RAM
+Description=Proactive memory compaction, cgroup reclaim, and cache drop
 Documentation=https://github.com/
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"
+ExecStart=/bin/sh -c "echo 300M > /sys/fs/cgroup/memory.reclaim 2>/dev/null || true; echo 1 > /proc/sys/vm/compact_memory 2>/dev/null || true; sync; echo 3 > /proc/sys/vm/drop_caches"

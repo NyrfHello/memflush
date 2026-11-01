@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# memflush — Lightweight Linux Memory & Cache Flush Utility
-# Flushes kernel page cache, dentries, and inodes, reporting reclaimed RAM.
+# memflush — Advanced Linux Memory Compaction & Cache Flush Utility
+# Proactively reclaims cold process memory into ZRAM, defragments memory zones,
+# and flushes kernel page caches, dentries, and inodes.
 # ==============================================================================
 
 set -euo pipefail
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 # Text styling
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -25,28 +26,26 @@ else
     C_CYAN=""
 fi
 
-# Default options
 DO_NOTIFY=1
 DO_PRINT=1
 
-# CLI argument parsing
 show_help() {
-    echo -e "${C_BOLD}memflush${C_RESET} — Linux Memory & Cache Flush Utility (v${VERSION})"
+    echo -e "${C_BOLD}memflush${C_RESET} — Linux Memory Compaction & Cache Flush Utility (v${VERSION})"
     echo ""
     echo -e "${C_BOLD}USAGE:${C_RESET}"
     echo -e "    memflush [OPTIONS]"
     echo ""
     echo -e "${C_BOLD}OPTIONS:${C_RESET}"
-    echo -e "    ${C_GREEN}-n, --no-notify${C_RESET}   Run in terminal only; do not send desktop notification"
-    echo -e "    ${C_GREEN}-s, --silent${C_RESET}      Run completely silent (no terminal output, no notification)"
-    echo -e "    ${C_GREEN}-q, --quiet${C_RESET}       Alias for --silent"
+    echo -e "    ${C_GREEN}-n, --no-notify${C_RESET}   Run in terminal only (skips desktop notification)"
+    echo -e "    ${C_GREEN}-s, --silent${C_RESET}      Run completely silent (no terminal text, no notification)"
+    echo -e "    ${C_GREEN}-q, --quiet${C_RESET}       Alias for --silent (ideal for autostart & cron)"
     echo -e "    ${C_GREEN}-v, --version${C_RESET}     Display version information"
     echo -e "    ${C_GREEN}-h, --help${C_RESET}        Show this help message"
     echo ""
     echo -e "${C_BOLD}EXAMPLES:${C_RESET}"
-    echo -e "    memflush              # Standard run (terminal stats + notification)"
+    echo -e "    memflush              # Standard run (terminal stats + desktop notification)"
     echo -e "    memflush --no-notify  # CLI-only mode (great for SSH or scripting)"
-    echo -e "    memflush --silent     # Silent mode (great for automated cron jobs)"
+    echo -e "    memflush --silent     # Silent mode (great for desktop hotkeys and boot autostart)"
     echo ""
 }
 
@@ -94,30 +93,37 @@ CACHE_BEFORE=$(free -m | awk '/^Mem:/ {print $6}')
 
 if [ "$DO_PRINT" -eq 1 ]; then
     echo -e "${C_BLUE}[memflush]${C_RESET} Measuring system memory..."
-    echo -e "           Cached: ${C_YELLOW}${CACHE_BEFORE} MB${C_RESET} / Total: ${MEM_TOTAL} MB"
-    echo -e "${C_BLUE}[memflush]${C_RESET} Flushing page cache, dentries, and inodes..."
+    echo -e "           Cached: ${C_YELLOW}${CACHE_BEFORE} MB${C_RESET} / Total RAM: ${MEM_TOTAL} MB"
+    echo -e "${C_BLUE}[memflush]${C_RESET} Trimming cold memory, compacting zones, and dropping caches..."
 fi
 
-# 2. Trigger cache flush (systemd service, direct root, pkexec, or sudo)
+# 2. Trigger 3-stage memory trim (systemd service, direct root, pkexec, or sudo)
+# Stage A: Proactive cgroup reclaim into ZRAM (echo 300M > /sys/fs/cgroup/memory.reclaim)
+# Stage B: Proactive memory compaction (echo 1 > /proc/sys/vm/compact_memory)
+# Stage C: Drop page cache and dentries (sync; echo 3 > /proc/sys/vm/drop_caches)
+
 FLUSHED=0
 
 if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet memflush.service 2>/dev/null || systemctl start memflush.service 2>/dev/null; then
     FLUSHED=1
 elif [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    echo 300M > /sys/fs/cgroup/memory.reclaim 2>/dev/null || true
+    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null || true
     sync && echo 3 > /proc/sys/vm/drop_caches
     FLUSHED=1
 elif command -v pkexec >/dev/null 2>&1 && [ -n "${DISPLAY:-${WAYLAND_DISPLAY:-}}" ]; then
-    pkexec sh -c "sync; echo 3 > /proc/sys/vm/drop_caches" 2>/dev/null && FLUSHED=1 || true
+    pkexec sh -c "echo 300M > /sys/fs/cgroup/memory.reclaim 2>/dev/null || true; echo 1 > /proc/sys/vm/compact_memory 2>/dev/null || true; sync; echo 3 > /proc/sys/vm/drop_caches" 2>/dev/null && FLUSHED=1 || true
 fi
 
 # Fallback to sudo if still not flushed
 if [ "$FLUSHED" -eq 0 ]; then
-    if sudo -n sh -c "sync; echo 3 > /proc/sys/vm/drop_caches" 2>/dev/null; then
+    CMD="echo 300M > /sys/fs/cgroup/memory.reclaim 2>/dev/null || true; echo 1 > /proc/sys/vm/compact_memory 2>/dev/null || true; sync; echo 3 > /proc/sys/vm/drop_caches"
+    if sudo -n sh -c "$CMD" 2>/dev/null; then
         FLUSHED=1
-    elif sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"; then
+    elif sudo sh -c "$CMD"; then
         FLUSHED=1
     else
-        echo -e "${C_YELLOW}[memflush] Warning: Failed to obtain root privileges to drop caches.${C_RESET}" >&2
+        echo -e "${C_YELLOW}[memflush] Warning: Failed to obtain root privileges to trim memory.${C_RESET}" >&2
         exit 1
     fi
 fi
@@ -150,7 +156,7 @@ if [ "$DO_PRINT" -eq 1 ]; then
     if [ "$DIFF" -gt 0 ]; then
         echo -e "${C_GREEN}[memflush] Success!${C_RESET} Reclaimed: ${C_BOLD}${C_GREEN}${FREED_STR}${C_RESET} | Available: ${C_BOLD}${AVAIL_STR}${C_RESET} (Total: ${MEM_TOTAL} MB)"
     else
-        echo -e "${C_GREEN}[memflush] Memory already clean!${C_RESET} Available: ${C_BOLD}${AVAIL_STR}${C_RESET} (Total: ${MEM_TOTAL} MB)"
+        echo -e "${C_GREEN}[memflush] Memory already optimal!${C_RESET} Available: ${C_BOLD}${AVAIL_STR}${C_RESET} (Total: ${MEM_TOTAL} MB)"
     fi
 fi
 
@@ -160,7 +166,7 @@ if [ "$DO_NOTIFY" -eq 1 ] && command -v notify-send >/dev/null 2>&1; then
         if [ "$DIFF" -gt 0 ]; then
             notify-send -u normal -i utilities-system-monitor "Memory Flushed" "Freed ${FREED_STR} (Available: ${AVAIL_STR})"
         else
-            notify-send -u normal -i utilities-system-monitor "Memory Clean" "RAM already optimal (Available: ${AVAIL_STR})"
+            notify-send -u normal -i utilities-system-monitor "Memory Optimal" "RAM is clean (Available: ${AVAIL_STR})"
         fi
     fi
 fi
