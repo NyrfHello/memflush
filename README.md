@@ -29,7 +29,7 @@
 - **Full Shell Completion & Man Page:** Includes native completions for **Bash**, **Zsh**, and **Fish**, plus a complete `man memflush` manual.
 
 ```text
-Example in Hyprland*
+Preview in Hyprland*
 ```
 
 <img width="1199" height="364" alt="image" src="https://github.com/user-attachments/assets/4de965d3-3608-4341-a2b6-6a20b0bbb51a" />
